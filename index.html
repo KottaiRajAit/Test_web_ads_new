@@ -99,9 +99,9 @@
         js = d.createElement(s); js.id = id; js.async = !0;
 
         if(faiShouldTrack) //faiShouldTrack
-            js.src = "http://localhost:3000/jsapi/omnichannel.js";
+            js.src = "https://staging.footprintsforretail.co//jsapi/omnichannel.js";
         else
-            js.src = "http://localhost3000/jsapi/omnichannel.js";
+            js.src = "https://staging.footprintsforretail.com/jsapi/omnichannel.js";
 
         ojs.parentNode.insertBefore(js, ojs);
     }
@@ -269,7 +269,7 @@ function readCookie(name){
 
             let uid = readCookie('ochnuid')
 
-		console.log("ochnuid",uid)
+            console.log("cookieochnuid",uid)
             
             let d = document;
             let s = 'script';
@@ -282,9 +282,9 @@ function readCookie(name){
             js = d.createElement(s); js.id = id; js.async = !0;
 
             if(window.innerWidth < 640) //faiShouldTrack
-                js.src =`http://localhost:3013/web-advertisement/5cf92039bc790a5cf99e3540/web_advertising_desktop/script.js?uid=${uid}`;
+                js.src =`https://temp.ffr.cloud/web-advertisement/632abe66f87cc85b72d73da1/web_advertising_desktop/script.js?uid=${uid}`;
             else
-                js.src = `http://localhost:3013/web-advertisement/5cf92039bc790a5cf99e3540/web_advertising_desktop/script.js?uid=${uid}`;
+                js.src = `https://temp.ffr.cloud/web-advertisement/632abe66f87cc85b72d73da1/web_advertising_desktop/script.js?uid=${uid}`;
 
             ojs.parentNode.insertBefore(js, ojs);
         }
