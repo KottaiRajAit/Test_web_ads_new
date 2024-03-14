@@ -1,0 +1,416 @@
+function ga_ecommerce(offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, event = 'add_to_cart', data_extra = undefined ){
+    category = 'Auto Rulate';
+    if(offer_category === 7){ // or 8 for auto rulate
+        category = 'Auto Noi';
+    }
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });  // Clear the previous ecommerce object
+
+    if(parseFloat(offer_price) === 0 && parseFloat(offer_full_price) > 0){
+        offer_price = offer_full_price
+    }
+
+    let _item = {
+        item_id: offer_id,
+        item_name: offer_name,
+        price: parseFloat(offer_price),
+        full_price: parseFloat(offer_full_price),
+        item_category: category,
+        item_brand: offer_brand,
+        item_category_2: offer_brand,
+        item_category_3: offer_model,
+        currency: 'EUR',
+
+        year: year+'',
+        mileage: String(mileage).replace('Km', ''),
+        power: power+'',
+        transmission: transmission,
+        carTraction: car_traction,
+        engineCapacity: engine_capacity
+    }
+
+    if(typeof data_extra !== 'undefined'){
+        if(typeof data_extra['body_style'] !== 'undefined'){
+            _item['body_style'] = data_extra['body_style'];
+        }
+        if(typeof data_extra['country'] !== 'undefined'){
+            _item['country'] = data_extra['country'];
+        }
+        if(typeof data_extra['content_type'] !== 'undefined'){
+            _item['content_type'] = data_extra['content_type'];
+        }
+        if(typeof data_extra['fuel_type'] !== 'undefined'){
+            _item['fuel_type'] = data_extra['fuel_type'];
+        }
+        if(typeof data_extra['fuel_type_formatted'] !== 'undefined'){
+            _item['fuel_type_formatted'] = data_extra['fuel_type_formatted'];
+        }
+    }
+
+    window.dataLayer.push({
+        'event': event, //event name
+        'ecommerce': {
+            'items': [_item], //array of product added to cart
+        }
+    });
+    console.log('ga done');
+}
+
+function ga_view_item(offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, data_extra = undefined){
+    category = 'Auto Rulate';
+    if(offer_category === 7){ // or 8 for auto rulate
+        category = 'Auto Noi';
+    }
+
+    if(parseFloat(offer_price) === 0 && parseFloat(offer_full_price) > 0){
+        offer_price = offer_full_price
+    }
+
+    let _item = {
+        item_id: offer_id,
+        item_name: offer_name,
+        price: parseFloat(offer_price),
+        full_price: parseFloat(offer_full_price),
+        item_category: category,
+        item_brand: offer_brand,
+        item_category_2: offer_brand,
+        item_category_3: offer_model,
+        currency: 'EUR',
+
+        year: year+'',
+        mileage: String(mileage).replace('Km', ''),
+        power: power+'',
+        transmission: transmission,
+        carTraction: car_traction,
+        engineCapacity: engine_capacity
+    };
+
+    if(typeof data_extra !== 'undefined'){
+        if(typeof data_extra['body_style'] !== 'undefined'){
+            _item['body_style'] = data_extra['body_style'];
+        }
+        if(typeof data_extra['country'] !== 'undefined'){
+            _item['country'] = data_extra['country'];
+        }
+        if(typeof data_extra['content_type'] !== 'undefined'){
+            _item['content_type'] = data_extra['content_type'];
+        }
+        if(typeof data_extra['fuel_type'] !== 'undefined'){
+            _item['fuel_type'] = data_extra['fuel_type'];
+        }
+        if(typeof data_extra['fuel_type_formatted'] !== 'undefined'){
+            _item['fuel_type_formatted'] = data_extra['fuel_type_formatted'];
+        }
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+        'event': 'view_item',
+        'ecommerce': {
+            'items': [_item],
+        },
+    });
+}
+
+function ga_purchase_var(lead_id, offer_data){
+    offer_id = offer_data['offer_id'];
+    offer_name = offer_data['offer_name'];
+    offer_price = offer_data['offer_price'];
+    offer_full_price = offer_data['offer_full_price'];
+    offer_brand = offer_data['offer_brand'];
+    offer_model = offer_data['offer_model'];
+    offer_category = offer_data['offer_category'];
+    year = offer_data['year'];
+    mileage = offer_data['mileage'];
+    power = offer_data['power'];
+    transmission = offer_data['transmission'];
+    car_traction = offer_data['car_traction'];
+    engine_capacity = offer_data['engine_capacity'];
+
+    data_extra = undefined;
+    if(typeof offer_data['body_style'] !== 'undefined'){
+        data_extra = data_extra || {};
+        data_extra['body_style'] = offer_data['body_style'];
+    }
+    if(typeof offer_data['content_type'] !== 'undefined'){
+        data_extra = data_extra || {};
+        data_extra['content_type'] = offer_data['content_type'];
+    }
+    if(typeof offer_data['country'] !== 'undefined'){
+        data_extra = data_extra || {};
+        data_extra['country'] = offer_data['country'];
+    }
+    if(typeof offer_data['fuel_type'] !== 'undefined'){
+        data_extra = data_extra || {};
+        data_extra['fuel_type'] = offer_data['fuel_type'];
+    }
+    if(typeof offer_data['fuel_type'] !== 'undefined'){
+        data_extra = data_extra || {};
+        data_extra['fuel_type_formatted'] = offer_data['fuel_type_formatted'];
+    }
+
+    ga_purchase(lead_id, offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, data_extra);
+}
+
+function ga_purchase(lead_id, offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, data_extra = undefined){
+    category = 'Auto Rulate';
+    if(offer_category === 7){ // or 8 for auto rulate
+        category = 'Auto Noi';
+    }
+
+    if(parseFloat(offer_price) === 0 && parseFloat(offer_full_price) > 0){
+        offer_price = offer_full_price;
+    }
+
+    let _item = {
+        item_id: offer_id,
+        item_name: offer_name,
+        price: parseFloat(offer_price),
+        full_price: parseFloat(offer_full_price),
+        item_category: category,
+        item_brand: offer_brand,
+        item_category_2: offer_brand,
+        item_category_3: offer_model,
+        currency: 'EUR',
+
+        year: year+'',
+        mileage: String(mileage).replace('Km', ''),
+        power: power+'',
+        transmission: transmission,
+        carTraction: car_traction,
+        engineCapacity: engine_capacity
+    };
+
+    if(typeof data_extra !== 'undefined'){
+        if(typeof data_extra['body_style'] !== 'undefined'){
+            _item['body_style'] = data_extra['body_style'];
+        }
+        if(typeof data_extra['country'] !== 'undefined'){
+            _item['country'] = data_extra['country'];
+        }
+        if(typeof data_extra['content_type'] !== 'undefined'){
+            _item['content_type'] = data_extra['content_type'];
+        }
+        if(typeof data_extra['fuel_type'] !== 'undefined'){
+            _item['fuel_type'] = data_extra['fuel_type'];
+        }
+        if(typeof data_extra['fuel_type_formatted'] !== 'undefined'){
+            _item['fuel_type_formatted'] = data_extra['fuel_type_formatted'];
+        }
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });  // Clear the previous ecommerce object
+    window.dataLayer.push({
+        'event': 'purchase', //event name
+        'ecommerce': {
+            'transaction_id': lead_id,
+            'value': offer_price,
+            'tax': 0,
+            'shipping': 0,
+            'coupon': '',
+            'currency': 'EUR',
+            'affiliation': '',
+            'items': [_item], //array of product added to cart
+        }
+    });
+    console.log('ga done');
+}
+
+function ga_add_to_wishlist(offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, data_extra = undefined){
+
+    if(parseFloat(offer_price) === 0 && parseFloat(offer_full_price) > 0){
+        offer_price = offer_full_price;
+    }
+
+    let _item = {
+        item_id: offer_id,
+        item_name: offer_name,
+        price: parseFloat(offer_price),
+        full_price: parseFloat(offer_full_price),
+        item_category: category,
+        item_brand: offer_brand,
+        item_category_2: offer_brand,
+        item_category_3: offer_model,
+        currency: 'EUR',
+
+        year: year+'',
+        mileage: String(mileage).replace('Km', ''),
+        power: power+'',
+        transmission: transmission,
+        carTraction: car_traction,
+        engineCapacity: engine_capacity
+    };
+
+    if(typeof data_extra !== 'undefined'){
+        if(typeof data_extra['body_style'] !== 'undefined'){
+            _item['body_style'] = data_extra['body_style'];
+        }
+        if(typeof data_extra['country'] !== 'undefined'){
+            _item['country'] = data_extra['country'];
+        }
+        if(typeof data_extra['content_type'] !== 'undefined'){
+            _item['content_type'] = data_extra['content_type'];
+        }
+        if(typeof data_extra['fuel_type'] !== 'undefined'){
+            _item['fuel_type'] = data_extra['fuel_type'];
+        }
+        if(typeof data_extra['fuel_type_formatted'] !== 'undefined'){
+            _item['fuel_type_formatted'] = data_extra['fuel_type_formatted'];
+        }
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    dataLayer.push({
+        'event' : 'add_to_wishlist',
+        'ecommerce': {
+            'items': [_item] //product added to wishlist
+        }
+    });
+    console.log('ga done');
+}
+
+function ga_campaign_promotion_click(promo_url, promo_name, image_url, location_id){
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+        'event': 'select_promotion',
+        'ecommerce': {
+            'items': [{
+                'promotion_id': promo_url,
+                'promotion_name': promo_name,
+                'creative_name': image_url,
+                'creative_slot': 1,
+                'location_id': location_id
+            }],
+        },
+    });
+    console.log('ga done');
+}
+
+function ga_simple_event(event = 'login'){
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({'event': event });
+    console.log('ga done');
+}
+
+var gaFormsToNames = {
+    'damage_center_appointments': 'autoconstatare daune',
+}
+
+function ga_simple_form(formName = 'lead', form_title = undefined){
+
+    if(typeof gaFormsToNames[formName] !== 'undefined')
+        formName = gaFormsToNames[formName];
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    let _obj = {
+        'event': 'formSubmit',
+        'formName': formName,
+    }
+    if(typeof form_title !== 'undefined')
+        _obj['form_title'] = form_title
+    window.dataLayer.push(_obj);
+    console.log('ga done');
+}
+
+function ga_complex_form(formData, formName = 'lead'){
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    let ga_object = {
+        'event': 'formSubmit',
+        'formName': formName,
+    };
+    if(typeof formData !== 'undefined' && typeof formData['formBrand'] !== 'undefined')
+        ga_object['formBrand'] = formData['formBrand'];
+    if(typeof formData !== 'undefined' && typeof formData['formModel'] !== 'undefined')
+        ga_object['formModel'] = formData['formModel'];
+    if(typeof formData !== 'undefined' && typeof formData['location'] !== 'undefined')
+        ga_object['location'] = formData['location'];
+    if(typeof formData !== 'undefined' && typeof formData['formMarketing'] !== 'undefined')
+        ga_object['formMarketing'] = formData['formMarketing'];
+    if(typeof formData !== 'undefined' && typeof formData['formSondaj'] !== 'undefined')
+        ga_object['formSondaj'] = formData['formSondaj'];
+    window.dataLayer.push(ga_object);
+    console.log('ga done');
+}
+
+function ga_select_item(offer_id, offer_name, offer_price, offer_full_price, offer_brand, offer_model, offer_category, year, mileage, power, transmission, car_traction, engine_capacity, data_extra = undefined){
+    category = 'Auto Rulate';
+    if(offer_category === 7){ // or 8 for auto rulate
+        category = 'Auto Noi';
+    }
+
+    let _item = {
+        item_id: offer_id,
+        item_name: offer_name,
+        price: offer_price,
+        full_price: offer_full_price,
+        item_category: category,
+        item_brand: offer_brand,
+        item_category_2: offer_brand,
+        item_category_3: offer_model,
+        currency: 'EUR',
+
+        year: year,
+        mileage: String(mileage).replace('Km', ''),
+        power: power,
+        transmission: transmission,
+        carTraction: car_traction,
+        engineCapacity: engine_capacity
+    };
+
+    if(typeof data_extra !== 'undefined'){
+        if(typeof data_extra['body_style'] !== 'undefined'){
+            _item['body_style'] = data_extra['body_style'];
+        }
+        if(typeof data_extra['country'] !== 'undefined'){
+            _item['country'] = data_extra['country'];
+        }
+        if(typeof data_extra['content_type'] !== 'undefined'){
+            _item['content_type'] = data_extra['content_type'];
+        }
+        if(typeof data_extra['fuel_type'] !== 'undefined'){
+            _item['fuel_type'] = data_extra['fuel_type'];
+        }
+        if(typeof data_extra['fuel_type_formatted'] !== 'undefined'){
+            _item['fuel_type_formatted'] = data_extra['fuel_type_formatted'];
+        }
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null });
+    window.dataLayer.push({
+        'event': 'select_item', //event name
+        'ecommerce': {
+            'items': [_item], //array of product added to cart
+        }
+    });
+    console.log('ga done');
+}
+
+function ga_popup_banner_click(promotion_url, promotion_name, banner_url, location_id, location_click){
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ ecommerce: null }); // Clear the previous ecommerce object
+    window.dataLayer.push({
+        'event': 'select_promotion',
+        'ecommerce': {
+            'items': [{
+                'promotion_id': promotion_url,
+                'promotion_name': promotion_name,
+                'creative_name': banner_url, //BANNER
+                'creative_slot': '1',
+                'location_id': location_id,
+                'location_click': location_click
+            }]
+        }
+    });
+    console.log('ga done');
+}
+
+function ga_user_data(user_id, first_login, saved_searched, user_cars, user_favorites){
+
+}

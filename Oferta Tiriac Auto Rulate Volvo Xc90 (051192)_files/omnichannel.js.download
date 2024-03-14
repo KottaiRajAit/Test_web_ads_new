@@ -1,0 +1,1461 @@
+(function(funcName, baseObj) {
+    funcName = funcName || "docReady";
+    baseObj = baseObj || window;
+    var readyList = [];
+    var readyFired = false;
+    var readyEventHandlersInstalled = false;
+
+    function ready() {
+        if (!readyFired) {
+            readyFired = true;
+            for (var i = 0; i < readyList.length; i++) {
+                readyList[i].fn.call(window, readyList[i].ctx);
+            }
+            readyList = [];
+        }
+    }
+
+    function readyStateChange() {
+        if ( document.readyState === "complete" ) {
+            ready();
+        }
+    }
+    baseObj[funcName] = function(callback, context) {
+        if (typeof callback !== "function") {
+            throw new TypeError("callback for docReady(fn) must be a function");
+        }
+        if (readyFired) {
+            setTimeout(function() {callback(context);}, 1);
+            return;
+        } else {
+            readyList.push({fn: callback, ctx: context});
+        }
+        if (document.readyState === "complete") {
+            setTimeout(ready, 1);
+        } else if (!readyEventHandlersInstalled) {
+            if (document.addEventListener) {
+                document.addEventListener("DOMContentLoaded", ready, false);
+                window.addEventListener("load", ready, false);
+            } else {
+                document.attachEvent("onreadystatechange", readyStateChange);
+                window.attachEvent("onload", ready);
+            }
+            readyEventHandlersInstalled = true;
+        }
+    }
+})("docReady", window);
+
+window.ochn = {};
+var ochnFrmIdValue = "frmochn";
+var apiUrl = "https://app-tiriacauto.footprintsforretail.com/jsapi";
+var locationTrack = true;
+
+
+class OmniTrack {
+    
+    constructor() {
+        var techInfo = this.getBrowserInfo();
+        try {
+            let currentLocation = new URL(window.location).searchParams;
+            var ochnBrowserCookieId = currentLocation.get('ochnpid');
+            var cookieType = 'pid'
+            if (!ochnBrowserCookieId) {
+                ochnBrowserCookieId = currentLocation.get('ochnuid');
+                cookieType = 'cid'
+            }
+            if (ochnBrowserCookieId) {
+                this.createCookie((cookieType == 'pid' ? 'ochnpid' : 'ochnuid'), ochnBrowserCookieId, 180)
+            }
+        } catch (err) {
+            console.log(err)
+        }
+
+        if (locationTrack && (typeof ochnTrackLocation === "undefined" || ((typeof ochnTrackLocation !== "undefined" && ochnTrackLocation == true)))) {
+                this.getCurrentPosition()
+        }
+        
+        if(!ochnkey){
+            console.log("Init failed! Appkey not found!");
+        } else {
+            this.appkey = ochnkey;
+        }
+
+        try{
+            if (typeof ochnSearchkey !== "undefined") this.searchKey = ochnSearchkey;
+        } catch (err) {
+            console.log("Search key not declared!");
+        }
+
+        try{
+            if (typeof ochnLocation !== "undefined") {
+                this.locationId = ochnLocation
+            }
+        } catch (err) {
+            console.log('location not declared')
+        }
+    }
+}
+
+OmniTrack.prototype.getBrowserType = function() {
+
+    // Opera 8.0+
+    if((!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0) return "Opera";
+
+    // Firefox 1.0+
+    if(typeof InstallTrigger !== 'undefined') return "Firefox";
+
+    // Safari 3.0+ "[object HTMLElementConstructor]" 
+    if(/constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification))) return "Safari";
+
+    // Internet Explorer 6-11
+    if(/*@cc_on!@*/false || !!document.documentMode) return "Internet Explorer";
+
+    // Edge 20+
+    //if(!isIE && !!window.StyleMedia) return "Edge";
+
+    // Chrome 1+
+    if(!!window.chrome && !!window.chrome.webstore) return "Chrome";
+
+    // Blink engine detection
+    if((isChrome || isOpera) && !!window.CSS) return "Blink";
+
+    return "";
+
+}
+
+OmniTrack.prototype.getCurrentPosition = function() {
+
+     var options = {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      };
+    var thisInst = this;
+    let lat = thisInst.readCookie("ochncoords_latitude");
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        var crd = pos.coords;
+        thisInst.createCookie("ochncoords_latitude", crd.latitude, 10);
+        thisInst.createCookie("ochncoords_longitude", crd.longitude, 10);
+        if (!lat || lat != crd.latitude) {
+            thisInst.init("", true);
+        }
+        return crd.latitude + "," + crd.longitude;
+    }, function(){ return ""; }, options);
+}
+
+OmniTrack.prototype.getBrowserInfo = function() {
+
+    var unknown = '-';
+
+    // screen
+    var screenSize = '';
+    if (screen.width) {
+        width = (screen.width) ? screen.width : '';
+        height = (screen.height) ? screen.height : '';
+        screenSize += '' + width + "x" + height;
+    }
+
+    // browser
+    var nVer = navigator.appVersion;
+    var nAgt = navigator.userAgent;
+    var browser = navigator.appName;
+    var version = '' + parseFloat(navigator.appVersion);
+    var majorVersion = parseInt(navigator.appVersion, 10);
+    var nameOffset, verOffset, ix;
+
+    // Opera
+    if ((verOffset = nAgt.indexOf('Opera')) != -1) {
+        browser = 'Opera';
+        version = nAgt.substring(verOffset + 6);
+        if ((verOffset = nAgt.indexOf('Version')) != -1) {
+            version = nAgt.substring(verOffset + 8);
+        }
+    }
+    // Opera Next
+    if ((verOffset = nAgt.indexOf('OPR')) != -1) {
+        browser = 'Opera';
+        version = nAgt.substring(verOffset + 4);
+    }
+    // Edge
+    else if ((verOffset = nAgt.indexOf('Edge')) != -1) {
+        browser = 'Microsoft Edge';
+        version = nAgt.substring(verOffset + 5);
+    }
+    // MSIE
+    else if ((verOffset = nAgt.indexOf('MSIE')) != -1) {
+        browser = 'Microsoft Internet Explorer';
+        version = nAgt.substring(verOffset + 5);
+    }
+    // Chrome
+    else if ((verOffset = nAgt.indexOf('Chrome')) != -1) {
+        browser = 'Chrome';
+        version = nAgt.substring(verOffset + 7);
+    }
+    // Safari
+    else if ((verOffset = nAgt.indexOf('Safari')) != -1) {
+        browser = 'Safari';
+        version = nAgt.substring(verOffset + 7);
+        if ((verOffset = nAgt.indexOf('Version')) != -1) {
+            version = nAgt.substring(verOffset + 8);
+        }
+    }
+    // Firefox
+    else if ((verOffset = nAgt.indexOf('Firefox')) != -1) {
+        browser = 'Firefox';
+        version = nAgt.substring(verOffset + 8);
+    }
+    // MSIE 11+
+    else if (nAgt.indexOf('Trident/') != -1) {
+        browser = 'Microsoft Internet Explorer';
+        version = nAgt.substring(nAgt.indexOf('rv:') + 3);
+    }
+    // Other browsers
+    else if ((nameOffset = nAgt.lastIndexOf(' ') + 1) < (verOffset = nAgt.lastIndexOf('/'))) {
+        browser = nAgt.substring(nameOffset, verOffset);
+        version = nAgt.substring(verOffset + 1);
+        if (browser.toLowerCase() == browser.toUpperCase()) {
+            browser = navigator.appName;
+        }
+    }
+    // trim the version string
+    if ((ix = version.indexOf(';')) != -1) version = version.substring(0, ix);
+    if ((ix = version.indexOf(' ')) != -1) version = version.substring(0, ix);
+    if ((ix = version.indexOf(')')) != -1) version = version.substring(0, ix);
+
+    majorVersion = parseInt('' + version, 10);
+    if (isNaN(majorVersion)) {
+        version = '' + parseFloat(navigator.appVersion);
+        majorVersion = parseInt(navigator.appVersion, 10);
+    }
+
+    // mobile version
+    var mobile = /Mobile|mini|Fennec|Android|iP(ad|od|hone)/.test(nVer);
+
+    // cookie
+    var cookieEnabled = (navigator.cookieEnabled) ? true : false;
+
+    if (typeof navigator.cookieEnabled == 'undefined' && !cookieEnabled) {
+        document.cookie = 'testcookie';
+        cookieEnabled = (document.cookie.indexOf('testcookie') != -1) ? true : false;
+    }
+
+    // system
+    var os = unknown;
+    var clientStrings = [
+        {s:'Windows 10', r:/(Windows 10.0|Windows NT 10.0)/},
+        {s:'Windows 8.1', r:/(Windows 8.1|Windows NT 6.3)/},
+        {s:'Windows 8', r:/(Windows 8|Windows NT 6.2)/},
+        {s:'Windows 7', r:/(Windows 7|Windows NT 6.1)/},
+        {s:'Windows Vista', r:/Windows NT 6.0/},
+        {s:'Windows Server 2003', r:/Windows NT 5.2/},
+        {s:'Windows XP', r:/(Windows NT 5.1|Windows XP)/},
+        {s:'Windows 2000', r:/(Windows NT 5.0|Windows 2000)/},
+        {s:'Windows ME', r:/(Win 9x 4.90|Windows ME)/},
+        {s:'Windows 98', r:/(Windows 98|Win98)/},
+        {s:'Windows 95', r:/(Windows 95|Win95|Windows_95)/},
+        {s:'Windows NT 4.0', r:/(Windows NT 4.0|WinNT4.0|WinNT|Windows NT)/},
+        {s:'Windows CE', r:/Windows CE/},
+        {s:'Windows 3.11', r:/Win16/},
+        {s:'Android', r:/Android/},
+        {s:'Open BSD', r:/OpenBSD/},
+        {s:'Sun OS', r:/SunOS/},
+        {s:'Linux', r:/(Linux|X11)/},
+        {s:'iOS', r:/(iPhone|iPad|iPod)/},
+        {s:'Mac OS X', r:/Mac OS X/},
+        {s:'Mac OS', r:/(MacPPC|MacIntel|Mac_PowerPC|Macintosh)/},
+        {s:'QNX', r:/QNX/},
+        {s:'UNIX', r:/UNIX/},
+        {s:'BeOS', r:/BeOS/},
+        {s:'OS/2', r:/OS\/2/},
+        {s:'Search Bot', r:/(nuhk|Googlebot|Yammybot|Openbot|Slurp|MSNBot|Ask Jeeves\/Teoma|ia_archiver)/}
+    ];
+    for (var id in clientStrings) {
+        var cs = clientStrings[id];
+        if (cs.r.test(nAgt)) {
+            os = cs.s;
+            break;
+        }
+    }
+
+    var osVersion = unknown;
+
+    if (/Windows/.test(os)) {
+        osVersion = /Windows (.*)/.exec(os)[1];
+        os = 'Windows';
+    }
+
+    switch (os) {
+        case 'Mac OS X':
+            osVersion = /Mac OS X (10[\.\_\d]+)/.exec(nAgt)[1];
+            break;
+
+        case 'Android':
+            osVersion = /Android ([\.\_\d]+)/.exec(nAgt)[1];
+            break;
+
+        case 'iOS':
+            osVersion = /OS (\d+)_(\d+)_?(\d+)?/.exec(nVer);
+            osVersion = osVersion[1] + '.' + osVersion[2] + '.' + (osVersion[3] | 0);
+            break;
+    }
+
+    let pid = this.readCookie("ochnuid")
+
+    if (!pid) {
+        pid = this.readCookie("ochnpid")
+    }
+    
+    this.techInfo = {
+        browserUserAgent: navigator.userAgent,
+        screenSize: screenSize,
+        browserType: browser,
+        browserLanguage: navigator.language,
+        appCodeName: navigator.appCodeName,   
+        deviceOs: os,
+        browserCookieId: pid
+    };
+};
+
+OmniTrack.prototype.check = function(email) {
+    return (!this.appkey) ? false : true;
+}
+
+OmniTrack.prototype.multiIdentifiers = function(identifiers) {
+    let matchedIdentifiers = {}
+    let availableIdentifiers = ['iosAdvertisignId', 'androidAdvertisingId', 'facebookUserId', 'instagramUserId', 'firebaseUserId', 'pushNotificationKey' ]
+    if (typeof identifiers == 'object') {
+        for (let item of Object.keys(identifiers)) {
+            if (availableIdentifiers.includes(item)) {
+                matchedIdentifiers[item] = identifiers[item]
+            }
+        }
+    }
+    return matchedIdentifiers;
+}
+
+OmniTrack.prototype.init = function(email = '', initWithCoord = false, identifiers = null) {
+    
+    var thisInst = this;
+    var cid = thisInst.readCookie("ochnuid");
+    var pid = thisInst.readCookie("ochnpid"); 
+
+    if(pid && pid=="-1" && cid && cid=="-1"){
+       return;
+    }
+
+    if(!thisInst.check()) console.log("Init failed! Appkey not found! Please use ochn.init('<email_address>')!");
+    
+    // Check initialization already done or not. If cid or pid exist in the cookie, then it is done
+    if(cid && cid!="-1") {
+        console.log("cid found!") 
+        if (!initWithCoord){
+            return;
+        }
+    }
+    if(pid && pid!="-1" && (email == "" || (cid && cid=="-1"))){ 
+        if (!initWithCoord) {
+            console.log("pid found!") 
+            return;
+        }
+    }
+
+    var initData = {
+        appkey:this.appkey,
+        email: email,
+        technicalInfo: thisInst.techInfo,
+    };
+
+    if (this.locationId) {
+        initData.locationId = this.locationId
+    }
+
+    if (identifiers && Object.keys(identifiers).length) {
+        let ids = this.multiIdentifiers(identifiers)
+        initData = {...initData, ...ids}
+    }
+
+    if (thisInst.readCookie("ochncoords_latitude")) {
+        initData.presenceCoordinates = [
+            {
+                coordinates: {
+                    lat: thisInst.readCookie("ochncoords_latitude"),
+                    long: thisInst.readCookie("ochncoords_longitude")
+                }
+            }
+        ]
+    }
+
+    if(pid && pid!="-1"){
+        initData["pid"] = pid;
+    }
+
+    if(cid && cid!="-1"){
+        initData["pid"] = cid;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/init", false);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(initData));
+    /*xhr.onreadystatechange = function () { 
+        if (this.readyState != 4) return;    
+        if (this.status == 200) {
+            var data = JSON.parse(this.responseText);
+            if(data.status && data.status == "ok" && (data.uid || data.pid)){                
+                if(data.uid){
+                    thisInst.createCookie("ochnuid", data.uid, 180);
+                } 
+                if(data.pid){ 
+                    thisInst.createCookie("ochnpid", data.pid, 180);
+                    if(email!=""){
+                        thisInst.createCookie("ochnuid", "-1", 10);
+                    }
+                } 
+            }
+        } else {
+            thisInst.createCookie("ochnuid", "-1", 0.24);
+            thisInst.createCookie("ochnpid", "-1", 0.24);
+        }
+
+        console.log("ochnuid/ochnpid cookies created");
+
+    };*/
+
+    if (xhr.status === 200) {
+
+        var data = JSON.parse(xhr.responseText);
+        if(data.status && data.status == "ok" && (data.uid || data.pid)){                
+            if(data.uid){
+                thisInst.createCookie("ochnuid", data.uid, 180);
+            } 
+            if(data.pid){ 
+                thisInst.createCookie("ochnpid", data.pid, 180);
+            } 
+            if (thisInst.techInfo && !thisInst.techInfo.browserCookieId) {
+                thisInst.techInfo.browserCookieId = data.uid || data.pid
+            }
+        }
+        
+        /*console.log("ochnuid/ochnpid cookies created");*/
+
+    } else {
+        thisInst.createCookie("ochnuid", "-1", 0.24);
+        thisInst.createCookie("ochnpid", "-1", 0.24);
+        console.log("ochnuid/ochnpid invalid cookies created");  
+    }
+
+    console.log("init request done");
+
+};
+
+OmniTrack.prototype.register = function(data, returnMessage = false) 
+{    
+    console.log("Lead registration started on FFR");
+    console.log("Request Data -> ", data)
+    let thisInst = this;
+    
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    if(!data){
+        console.log("Register failed! Please send valid data!");
+        return false;
+    }  
+
+    let refactoredData = {}
+
+    if(typeof data === 'string'){        
+        refactoredData = thisInst.getFormData(data);
+    } else if(typeof data === 'object'){
+        refactoredData = thisInst.refactorObject(data);
+    }
+    
+    console.log("Refactored Data -> ", refactoredData);
+    if(Object.keys(refactoredData).length == 0){
+        console.log("Refactored Data is empty");
+        return false;
+    } 
+    var pid = this.readCookie("ochnpid");
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        refactoredData.pid = cid;
+    } else {   
+        refactoredData.pid = pid;
+    }
+
+    try {
+        refactoredData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch(exception){
+        console.log(exception);
+    }
+
+    refactoredData.url = window.location.href;
+    if (!refactoredData.requestedThrough) {
+        refactoredData.requestedThrough = 'SDK'
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/lead", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(refactoredData));
+    /*xhr.onreadystatechange = function () {
+        if (this.readyState != 4) return;    
+        if (this.status == 200) { 
+            var resp = JSON.parse(this.responseText);
+            if(resp.status && resp.status == "ok" && resp.uid){
+                thisInst.createCookie("ochnuid", resp.uid, 180);
+            }
+            thisInst.deleteUtmCookies();
+        }
+    };*/ 
+
+    /*if (xhr.readyState != 4) return;*/   
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        if(resp.status && resp.status == "ok" && resp.uid){
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+            /*console.log("ochnuid cookies created")*/
+              thisInst.deleteCookie("ochnpid");
+        }
+        thisInst.deleteUtmCookies();
+        /*console.log("utm cookies deleted")*/
+        console.log("register request done")
+
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+}
+
+OmniTrack.prototype.errorLog = function(data) 
+{
+    let thisInst = this;
+    
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        data.pid = cid;
+    } else {   
+        data.pid = this.readCookie("ochnpid");
+    }
+    data.appkey = this.appkey;
+    data.url = window.location.href;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/errorlog", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(data));    
+}
+
+OmniTrack.prototype.getConsentData = function(data) 
+{  
+     if(!data){
+        console.log("get data failed! Please send valid data!");
+        return false;
+    }  
+    
+      var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/getClientConsentData", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(data));
+     var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        return resp ;
+    } else {
+        return resp;
+    }
+
+}
+OmniTrack.prototype.consultantAccess = function(data) 
+{  
+     if(!data){
+        console.log("get data failed! Please send valid data!");
+        return false;
+    }  
+      var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/getConsultantAccess", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(data));
+     var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        return resp ;
+    } else {
+        return resp;
+    }
+
+}
+OmniTrack.prototype.prepopulate = function(data) 
+{  
+     if(!data){
+        console.log("get data failed! Please send valid data!");
+        return false;
+    }  
+    var queryParams = Object.keys(data).map(function(key) {
+        return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+    }).join('&');
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", apiUrl + "/lead/fetch?" + queryParams, false);
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(data));
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        return resp ;
+    } else {
+        return resp;
+    }
+
+}
+
+OmniTrack.prototype.documentOTP = function(data, returnMessage = false) 
+{    
+    console.log('in documentRegister',data)
+    let thisInst = this;
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    if(!data){
+        console.log("Register failed! Please send valid data!");
+        return false;
+    }  
+
+    let refactoredData = {}
+
+    if(typeof data === 'string'){        
+        refactoredData = thisInst.getFormData(data);
+    } else if(typeof data === 'object'){
+        refactoredData = thisInst.refactorObject(data);
+    }
+    
+    if(Object.keys(refactoredData).length == 0){
+        return false;
+    } 
+    var pid = this.readCookie("ochnpid");
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        refactoredData.pid = cid;
+    } else {   
+        refactoredData.pid = pid;
+    }
+
+    try {
+        refactoredData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch(exception){
+        console.log(exception);
+    }
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/documentOTP", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(refactoredData));
+    /*xhr.onreadystatechange = function () {
+        if (this.readyState != 4) return;    
+        if (this.status == 200) { 
+            var resp = JSON.parse(this.responseText);
+            if(resp.status && resp.status == "ok" && resp.uid){
+                thisInst.createCookie("ochnuid", resp.uid, 180);
+            }
+            thisInst.deleteUtmCookies();
+        }
+    };*/ 
+
+    /*if (xhr.readyState != 4) return;*/   
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        if(resp.status && resp.status == "ok" && resp.uid){
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+            /*console.log("ochnuid cookies created")*/
+              thisInst.deleteCookie("ochnpid");
+        }
+        thisInst.deleteUtmCookies();
+        /*console.log("utm cookies deleted")*/
+        console.log("register request done")
+
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+
+   
+
+}
+OmniTrack.prototype.consultantAuthOTP = function(data, returnMessage = false) 
+{  
+     console.log('in documentRegister',data)
+    let thisInst = this;
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    if(!data){
+        console.log("Register failed! Please send valid data!");
+        return false;
+    }  
+
+    let refactoredData = {}
+
+    if(typeof data === 'string'){        
+        refactoredData = thisInst.getFormData(data);
+    } else if(typeof data === 'object'){
+        refactoredData = thisInst.refactorObject(data);
+    }
+    
+    if(Object.keys(refactoredData).length == 0){
+        return false;
+    } 
+    var pid = this.readCookie("ochnpid");
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        refactoredData.pid = cid;
+    } else {   
+        refactoredData.pid = pid;
+    }
+
+    try {
+        refactoredData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch(exception){
+        console.log(exception);
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/consultantAuthOTP", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(refactoredData));
+    /*xhr.onreadystatechange = function () {
+        if (this.readyState != 4) return;    
+        if (this.status == 200) { 
+            var resp = JSON.parse(this.responseText);
+            if(resp.status && resp.status == "ok" && resp.uid){
+                thisInst.createCookie("ochnuid", resp.uid, 180);
+            }
+            thisInst.deleteUtmCookies();
+        }
+    };*/ 
+
+    /*if (xhr.readyState != 4) return;*/   
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        if(resp.status && resp.status == "ok" && resp.uid){
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+            /*console.log("ochnuid cookies created")*/
+              thisInst.deleteCookie("ochnpid");
+        }
+        thisInst.deleteUtmCookies();
+        /*console.log("utm cookies deleted")*/
+        console.log("register request done")
+
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+
+   
+
+}
+
+OmniTrack.prototype.marketConsentOTP = function(data, returnMessage = false) 
+{    
+    console.log('in documentRegister',data)
+    let thisInst = this;
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    if(!data){
+        console.log("Register failed! Please send valid data!");
+        return false;
+    }  
+
+    let refactoredData = {}
+
+    if(typeof data === 'string'){        
+        refactoredData = thisInst.getFormData(data);
+    } else if(typeof data === 'object'){
+        refactoredData = thisInst.refactorObject(data);
+    }
+    
+    if(Object.keys(refactoredData).length == 0){
+        return false;
+    } 
+    var pid = this.readCookie("ochnpid");
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        refactoredData.pid = cid;
+    } else {   
+        refactoredData.pid = pid;
+    }
+
+    try {
+        refactoredData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch(exception){
+        console.log(exception);
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/marketConsentOTP", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(refactoredData));
+    /*xhr.onreadystatechange = function () {
+        if (this.readyState != 4) return;    
+        if (this.status == 200) { 
+            var resp = JSON.parse(this.responseText);
+            if(resp.status && resp.status == "ok" && resp.uid){
+                thisInst.createCookie("ochnuid", resp.uid, 180);
+            }
+            thisInst.deleteUtmCookies();
+        }
+    };*/ 
+
+    /*if (xhr.readyState != 4) return;*/   
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        if(resp.status && resp.status == "ok" && resp.uid){
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+            /*console.log("ochnuid cookies created")*/
+              thisInst.deleteCookie("ochnpid");
+        }
+        thisInst.deleteUtmCookies();
+        /*console.log("utm cookies deleted")*/
+        console.log("register request done")
+
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+
+   
+
+}
+
+OmniTrack.prototype.documentSubmit = function(data, returnMessage = false) 
+{    
+    console.log('in verifyOTP',data)
+    let thisInst = this;
+    if(!thisInst.check()){
+        console.log("Init failed! Appkey not found!");
+        return false;
+    }  
+    if(!data){
+        console.log("Register failed! Please send valid data!");
+        return false;
+    }  
+
+    let refactoredData = {}
+
+    if(typeof data === 'string'){        
+        refactoredData = thisInst.getFormData(data);
+    } else if(typeof data === 'object'){
+        refactoredData = thisInst.refactorObject(data);
+    }
+    
+    if(Object.keys(refactoredData).length == 0){
+        return false;
+    } 
+    var pid = this.readCookie("ochnpid");
+    var cid = this.readCookie("ochnuid");
+    if(cid && cid != "-1" && cid != "") {     
+        refactoredData.pid = cid;
+    } else {   
+        refactoredData.pid = pid;
+    }
+
+    try {
+        refactoredData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch(exception){
+        console.log(exception);
+    }
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/documentSubmit", false); 
+    xhr.setRequestHeader('Content-Type', 'application/json'); 
+    xhr.send(JSON.stringify(refactoredData));
+    /*xhr.onreadystatechange = function () {
+        if (this.readyState != 4) return;    
+        if (this.status == 200) { 
+            var resp = JSON.parse(this.responseText);
+        }
+    };*/ 
+
+    /*if (xhr.readyState != 4) return;*/   
+    var resp = JSON.parse(xhr.responseText); 
+    if (xhr.status == 200) {         
+        if(resp.status && resp.status == "ok" && resp.uid){
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+            /*console.log("ochnuid cookies created")*/
+              thisInst.deleteCookie("ochnpid");
+        }
+        thisInst.deleteUtmCookies();
+        /*console.log("utm cookies deleted")*/
+        console.log("register request done")
+
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+
+}
+
+OmniTrack.prototype.refactorObject = function(data) 
+{
+    console.log("data", data)
+    let thisInst = this;
+    data.appkey = this.appkey;
+    data.agreeTandc = "true";
+
+    if((data.channels && (Array.isArray(data) === true)) || data.partners_channels || data.group_channels || data.profiling_channels){
+
+        let dataChannels = (data.channels) ? data.channels : [];
+        let dataPartnersChannels = (data.partners_channels) ? data.partners_channels : [];
+        let dataGroupChannels = (data.group_channels) ? data.group_channels : [];
+        let dataProfilingChannels = (data.profiling_channels) ? data.profiling_channels : [];
+
+        if(!apiUrl.includes("hyundai")) dataProfilingChannels = ['email', 'sms', 'notification']
+        let marketingChannels = thisInst.refactorChannels( dataChannels, dataPartnersChannels, dataGroupChannels, dataProfilingChannels)
+        
+        if(marketingChannels.length){
+            data.agreeToCollect = 'true';
+            data.marketType = 'standard';
+            data.marketingChannels = marketingChannels;
+        }
+
+    }
+
+
+    if(!data.marketingChannels && data.channels && 
+        typeof data.channels === 'object' && data.channels !== null && Object.keys(data.channels).length>0){
+
+        let newMarketingChannels = [];
+
+        console.log("data.channels", data.channels);
+            
+
+        for(let entityType of Object.keys(data.channels)){
+            
+            if(typeof data.channels[entityType] === 'object' && data.channels[entityType] !== null && ['owner', 'partners', 'group', 'profiling'].indexOf(entityType.trim()) !== -1){
+                for(let channel of Object.keys(data.channels[entityType])){
+                    if(['email', 'sms', 'notification'].indexOf(channel.trim()) !== -1){
+                        
+                        let channelValue = data.channels[entityType][channel];
+                       
+                        if([0,1].indexOf(parseInt(channelValue)) !== -1){
+                            newMarketingChannels.push({
+                                agreed  : (parseInt(channelValue) == 1) ? "true" : "false",
+                                type    : entityType,
+                                channel : channel,
+                            });
+                        }
+
+                    } else {
+                        console.log("invalid channel", channel);
+                    }
+                }
+            } else {
+                console.log("invalid entityType", entityType);
+            }
+
+
+        }
+
+        if(newMarketingChannels.length){
+            data.agreeToCollect = 'true';
+            data.marketType = 'standard';
+            data.marketingChannels = newMarketingChannels;
+        }
+
+    }
+
+    if(data.channels) delete data.channels;
+    if(data.group_channels) delete data.group_channels;
+    if(data.partners_channels) delete data.partners_channels;
+    if(data.profiling_channels) delete data.profiling_channels;
+
+    let utmData = thisInst.getUtmCookies();
+    if(Object.keys(utmData).length > 0){
+       data = {...data, ...utmData}; 
+    }
+
+    if(data.tags){
+        data.tags = Array.from(new Set(data.tags));
+    }
+
+    if(data.description &&  Array.isArray(data.description) && data.description.length > 0){
+        data.description = data.description.join(",");
+    }
+
+    data.deviceType = thisInst.getDeviceType();
+    data.technicalInfo = thisInst.techInfo;
+    if (data.technicalInfo && !data.technicalInfo.browserCookieId) {
+        var pid = this.readCookie("ochnpid");
+        var cid = this.readCookie("ochnuid");
+        if(cid && cid != "-1" && cid != "") {     
+            data.technicalInfo.browserCookieId = cid;
+        } else {   
+            data.technicalInfo.browserCookieId = pid;
+        }
+    }
+    if (thisInst.readCookie("ochncoords_latitude")){
+        data.presenceCoordinates = [
+            {
+                coordinates: {
+                    lat: thisInst.readCookie("ochncoords_latitude"),
+                    long: thisInst.readCookie("ochncoords_longitude")
+                }
+            }
+        ]
+    }
+
+    return data;
+
+}
+
+OmniTrack.prototype.getFormData = function(formId) 
+{
+
+    let thisInst = this;
+    let thisForm = document.getElementById(formId);
+    let ochnLabels = ['userFirstName','userLastName','userEmail','userPhone', 'nationalId','userSex','userGender','userCity','userCounty','userCountry','userDistrict',
+                      'tags','userExternalId','userJob','userJobDescription','userFamilyDetails','userIncome','hasKids','noOfKids','kidsAge','agreeToCollect','agreeTandc','isAdult',
+                      'userBirthday','userCompanyName','userCompanyAddress','channels','partners_channels','group_channels', 'profiling_channels']
+    
+    if(!thisForm) return {};
+
+    let data = {tags:[]};
+    let elements = thisForm.getElementsByTagName('*');
+
+    for(let elem of elements){
+
+        if(elem.type === 'file' || elem.disabled || elem.type === 'file' || elem.type === 'reset' || elem.type === 'submit' || elem.type === 'button') continue;
+
+        if(!elem.hasAttribute("ochnlabel") || (!elem.value && !elem.hasAttribute("ochnvalue"))) continue;
+        let ochnLabel = elem.getAttribute("ochnlabel").trim();
+        if(!(elem.type == "text" && ochnLabel.indexOf(",") !== -1) && ochnLabels.indexOf(ochnLabel) === -1) continue;
+
+        let ochnValue = '';
+        
+        /*console.log("elem.type", elem.type)*/
+
+        switch(elem.type){
+            case 'checkbox':
+            case 'radio':
+                if(elem.checked && elem.hasAttribute("ochnvalue")){
+                    
+                    if(['channels','partners_channels','group_channels', 'profiling_channels'].indexOf(ochnLabel)!==-1){
+                        if(['email','sms','notification'].indexOf(elem.getAttribute("ochnvalue")) !== -1){
+                            if(!data[ochnLabel]) data[ochnLabel] = [];
+                            data[ochnLabel].push(elem.getAttribute("ochnvalue").trim());
+                        }
+                        
+                    } else {
+                        data[ochnLabel] = elem.getAttribute("ochnvalue").trim();
+                    }                    
+                }
+            break;
+            case 'select-one':
+                if(ochnLabel == 'tags'){
+                    if(elem.options[elem.selectedIndex].value){
+                        data.tags.push(elem.options[elem.selectedIndex].value);
+                    }
+                } else {
+                    let option = elem.options[elem.selectedIndex];
+                    data[ochnLabel] = elem.hasAttribute("ochnvalue") ? elem.getAttribute("ochnvalue").trim() : option.value.trim();
+                }                
+            break;
+            case 'select-multiple':
+                if(['channels','partners_channels','group_channels','profiling_channels','tags'].indexOf(ochnLabel)!==-1){
+                    for (var n = 0; n < elem.options.length; n++) {
+                        console.log("elem.selectedIndex", elem.selectedIndex)
+                        if(elem.options[n].selected)
+                        data[ochnLabel].push(elem.options[n].value.trim());
+                    }
+                }
+            break;
+            default:
+            
+                let labels = ochnLabel.split(",");    
+                ochnValue = elem.hasAttribute("ochnvalue") ? elem.getAttribute("ochnvalue") : (elem.value || null);
+                let values = ochnValue.split(" ");  
+                if(labels.length > 1){
+                    for (var n = 0; n < labels.length; n++) {
+                        if(ochnLabels.indexOf(labels[n].trim())!==-1 && values[n]){
+                            data[labels[n].trim()] = values[n];
+                        } 
+                        if(n == labels.length-1 && values.length > labels.length){
+                            for (var i = n+1; i < values.length; i++) {
+                                data[labels[n].trim()] += " " + values[i];
+                            }
+                        }
+                    }
+                } else {
+                    if(ochnLabel == 'tags'){
+                        if(elem.hasAttribute("ochnvalue")){
+                            if(!data[ochnLabel]) data[ochnLabel] = [];
+                            data[ochnLabel].push(elem.getAttribute("ochnvalue"));
+                        }
+                    } else {
+                        data[ochnLabel] = ochnValue;
+                    }
+                }
+
+
+            break;
+        }
+
+    }
+
+    return thisInst.refactorObject(data);
+
+}
+
+OmniTrack.prototype.refactorChannels = function(ownerData,partnerData,groupData,profilingData) 
+{
+ 
+    let channels = ['email', 'sms', 'notification'];
+    let types = ['owner', 'partners', 'group', 'profiling'];
+    let mc = [];
+
+    for(let channel of channels){
+        for(let type of types){
+
+            let data = [];
+            switch(type){
+                case 'owner': data = ownerData; break;
+                case 'partners': data = partnerData; break;
+                case 'group': data = groupData; break;
+                case 'profiling': data = profilingData; break;
+            }
+
+            mc.push({
+                agreed  :  (data.indexOf(channel) !==-1) ? "true" : "false",
+                type    : type,
+                channel : channel,
+            });
+        }
+    }
+
+    return mc;
+
+}
+
+OmniTrack.prototype.send = function (type = 'action', attr = 'visit', data = {}) {
+
+    let thisInst = this;
+
+    if (!this.check()) console.log("Init failed! Appkey not found!");
+    var cid = this.readCookie("ochnuid");
+    var pid = this.readCookie("ochnpid");
+
+    if ((!cid || cid == "-1") && (!pid || pid == "-1")) {
+        console.log("No profile set! Please use ochn.init() first!");
+        return;
+    }
+
+    if (cid == "-1" && pid == "-1") return;
+
+    if (["lead", "action", "profile"].indexOf(type) === -1) {
+        console.log("Invalid parameters!");
+        return;
+    }
+
+    switch (type) {
+
+        case 'lead':
+        case 'profile':
+
+            break;
+        case 'action':
+
+            if (["visit", "sale", "contact", "feedback", "engagement", "profiling", "login", "register", "click", "search", "favorite", "addtocard", "checkout"].indexOf(attr) === -1) {
+                console.log("Invalid attributes!");
+                return;
+            }
+
+            break;
+    }
+
+    let technicalData = thisInst.techInfo
+
+    let dataUrl = window.location.href;
+
+
+    if (attr == "search") {
+        if (!this.searchKey) {
+            console.log("Search key not exists !");
+            return;
+        } else if (dataUrl.indexOf(this.searchKey) === -1) {
+            console.log("Search key not matched !");
+            return;
+        } else {
+            data["product"] = [new URL(dataUrl).searchParams.get(this.searchKey)];
+        }
+    }
+
+    sendData = {
+        appkey: this.appkey,
+        actionType: attr,
+        requestType: type,
+        aditionalData: data,
+        url: dataUrl,
+        technicalInfo: technicalData
+    };
+
+    if (cid && cid != "-1" && cid != "") {
+        sendData.uType = "c";
+        sendData.uid = cid;
+    } else {
+        sendData.uType = "p";
+        sendData.uid = pid;
+    }
+
+    try {
+        sendData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (exception) {
+        console.log(exception);
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/send", false);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(sendData));
+
+    if (xhr.status == 200) {
+        var resp = JSON.parse(xhr.responseText);
+        if (resp.status && resp.status == "ok" && resp.uid) {
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+        }
+    }
+
+    console.log("send request done");
+    return {};
+};
+
+OmniTrack.prototype.visit = function (type, attr, data = {}) {
+
+    let thisInst = this;
+
+    if (!this.check()) console.log("Init failed! Appkey not found!");
+    var cid = this.readCookie("ochnuid");
+    var pid = this.readCookie("ochnpid");
+
+    if ((!cid || cid == "-1") && (!pid || pid == "-1")) {
+        console.log("No profile set! Please use ochn.init() first!");
+        return;
+    }
+
+    if (cid == "-1" && pid == "-1") return;
+
+    if (["lead", "action", "profile"].indexOf(type) === -1) {
+        console.log("Invalid parameters!");
+        return;
+    }
+
+    switch (type) {
+        case 'action':
+
+            if (["visit"].indexOf(attr) === -1) {
+                console.log("Invalid attributes!");
+                return;
+            }
+            break;
+    }
+
+    let technicalData = thisInst.techInfo
+
+    let dataUrl = window.location.href;
+
+    sendData = {
+        appkey: this.appkey,
+        actionType: attr,
+        requestType: type,
+        aditionalData: data,
+        url: dataUrl,
+        technicalInfo: technicalData
+    };
+
+    if (cid && cid != "-1" && cid != "") {
+        sendData.uType = "c";
+        sendData.uid = cid;
+    } else {
+        sendData.uType = "p";
+        sendData.uid = pid;
+    }
+
+    try {
+        sendData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (exception) {
+        console.log(exception);
+    }
+
+    let options = {
+        keepalive: true,
+        method: 'POST',
+        headers: { 'content-type': 'application/json', },
+        body: JSON.stringify(sendData),
+    }
+    fetch(apiUrl + "/send", options)
+
+    console.log("send request done");
+    return {};
+};
+
+OmniTrack.prototype.profile = function (profileInit = {}, returnMessage = false) {
+
+    let thisInst = this;
+
+    let technicalData = thisInst.techInfo
+    profileInit.technicalInfo = technicalData
+    profileInit.url = window.location.href;
+
+    if (this.appkey) profileInit.appkey = this.appkey;
+
+    if (thisInst.readCookie("ochncoords_latitude")) {
+        profileInit.presenceCoordinates = [
+            {
+                coordinates: {
+                    lat: thisInst.readCookie("ochncoords_latitude"),
+                    long: thisInst.readCookie("ochncoords_longitude")
+                }
+            }
+        ]
+    }
+
+    try {
+        profileInit.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (exception) {
+        console.log(exception);
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl + "/profile", false);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(profileInit));
+
+    var resp = JSON.parse(xhr.responseText);
+    if (xhr.status == 200) {
+        console.log("register request done")
+        if (resp.status && resp.status == "ok" && resp.uid) {
+            thisInst.createCookie("ochnuid", resp.uid, 180);
+        }
+        return returnMessage ? resp : true;
+    } else {
+        return returnMessage ? resp : false;
+    }
+};
+
+OmniTrack.prototype.createCookie = function(name, value, days){
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        var expires = "; expires=" + date.toGMTString();
+    }
+    else var expires = "";
+    document.cookie = name + "=" + value + expires + "; path=/";
+}
+
+OmniTrack.prototype.readCookie = function(name){
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+OmniTrack.prototype.deleteCookie = function(name){
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    return null;
+}
+
+OmniTrack.prototype.getDeviceType = function () {
+
+   var isMobile = false; //initiate as false
+// device detection
+if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent) 
+    || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(navigator.userAgent.substr(0,4))) { 
+    isMobile = true;
+}
+   
+    return isMobile ? "mobile" : "desktop"
+
+}
+
+OmniTrack.prototype.getParameterByName = function (name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+OmniTrack.prototype.getUtmCookies = function() {
+
+    let thisInst = this;
+
+    let utmSource = thisInst.readCookie("ochnutmsrc");
+    let utmCampaign = thisInst.readCookie("ochnutmcmpgn");
+    let utmCampaignId = thisInst.readCookie("ochnutmcmpgnid");
+    let utmMedium = thisInst.readCookie("ochnutmmdm");
+    let utmContent = thisInst.readCookie("ochnutmctnt");
+    
+    if(utmMedium || utmCampaign || utmCampaignId || utmSource || utmContent) {
+        return {utmMedium: utmMedium || "", utmCampaign: utmCampaign || "", utmCampaignId: utmCampaignId || "", utmSource: utmSource || "", utmContent : utmContent || "" }
+    }
+
+    return thisInst.checkUtmCookies();
+
+}
+
+OmniTrack.prototype.deleteUtmCookies = function(){
+    let thisInst = this;
+    this.deleteCookie("ochnutmsrc");
+    this.deleteCookie("ochnutmcmpgn");
+    this.deleteCookie("ochnutmcmpgnid");
+    this.deleteCookie("ochnutmmdm");
+    this.deleteCookie("ochnutmctnt");
+}
+
+OmniTrack.prototype.checkUtmCookies = function () {
+
+    let thisInst = this;
+
+    let utmSource = thisInst.getParameterByName("utm_source");
+    if (utmSource) {
+        thisInst.createCookie("ochnutmsrc", utmSource, 7);
+    } else {
+        let referrer = document.referrer;
+        if (referrer && window?.location?.host && !referrer.includes(window.location.host)) {
+            utmSource = referrer;
+            if (utmSource) thisInst.createCookie("ochnutmsrc", utmSource, 7);
+        }
+    }
+    let utmCampaign = thisInst.getParameterByName("utm_campaign");
+    if (utmCampaign) thisInst.createCookie("ochnutmcmpgn", utmCampaign, 7);
+
+    let utmCampaignId = thisInst.getParameterByName("utm_campaignId");
+    if (utmCampaignId) thisInst.createCookie("ochnutmcmpgnid", utmCampaignId, 7);
+
+    let utmMedium = thisInst.getParameterByName("utm_medium");
+    if (utmMedium) thisInst.createCookie("ochnutmmdm", utmMedium, 7);
+
+    let utmContent = thisInst.getParameterByName("utm_content");
+    if (utmContent) thisInst.createCookie("ochnutmctnt", utmContent, 7);
+
+    if (utmMedium || utmCampaign || utmCampaignId || utmSource || utmContent) {
+        return { utmMedium: utmMedium, utmCampaign: utmCampaign, utmCampaignId: utmCampaignId, utmSource: utmSource, utmContent: utmContent }
+    } else {
+        return {}
+    }
+}
+
+
+docReady(function() {
+    try {
+        window.ochn = new OmniTrack();
+        window.ochn.checkUtmCookies();
+        ochntrack();
+
+    } catch(exception){
+        console.log(exception);
+    }
+    
+});
